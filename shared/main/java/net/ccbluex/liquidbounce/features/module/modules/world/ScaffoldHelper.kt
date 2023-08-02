@@ -14,6 +14,9 @@ import net.ccbluex.liquidbounce.features.module.ModuleInfo
 import net.ccbluex.liquidbounce.features.module.modules.movement.Parkour
 import net.ccbluex.liquidbounce.value.BoolValue
 import net.ccbluex.liquidbounce.value.ListValue
+import net.ccbluex.liquidbounce.api.minecraft.client.entity.IEntityPlayerSP
+import net.ccbluex.liquidbounce.utils.MinecraftInstance
+
 /**
  *
  * By WaWa
@@ -24,11 +27,14 @@ import net.ccbluex.liquidbounce.value.ListValue
 class ScaffoldHelper : Module() {
     private val modeValue = ListValue("Mode", arrayOf("State"), "State")
 
-    private val scaffoldModeValue = ListValue("Scaffold Mode", arrayOf("Scaffold", "Scaffold3","Scaffold2"), "ScaffoldNew")
+    private val scaffoldModeValue =
+        ListValue("Scaffold Mode", arrayOf("Scaffold", "Scaffold3", "Scaffold2"), "ScaffoldNew")
 
-    private val jumpModeValue = ListValue("Jump Mode", arrayOf("mc", "mc2","MotionY","Key", "Parkour", "Off"), "Off")
+    private val jumpModeValue = ListValue("Jump Mode", arrayOf("mc", "mc2", "MotionY", "Key", "Parkour", "Off"), "Off")
 
     private val timerValue = BoolValue("On Ground Timer", true)
+
+    private val autoYawValue = ListValue("setYawMode", arrayOf("None", "onUpdate"), "onUpdate")
 
 //    val Scaffold = LiquidBounce.moduleManager[Scaffold::class.java]
 //    val LBScaffold = LiquidBounce.moduleManager[LBScaffold::class.java]
@@ -36,7 +42,7 @@ class ScaffoldHelper : Module() {
 //    val Timer = LiquidBounce.moduleManager[Timer::class.java]
 //    val Parkour = LiquidBounce.moduleManager[Parkour::class.java]
 
-    fun jump(){
+    fun jump() {
         if (mc2.player.onGround || !mc2.player.isAirBorne) {
             when (jumpModeValue.get().toLowerCase()) {
                 "mc" -> mc.thePlayer!!.jump()
@@ -52,9 +58,9 @@ class ScaffoldHelper : Module() {
 
     override fun onDisable() {
         when (scaffoldModeValue.get().toLowerCase()) {
-            "scaffold" -> LiquidBounce.moduleManager[Scaffold::class.java]!!.state = false
-            "scaffold3" -> LiquidBounce.moduleManager[Scaffold3::class.java]!!.state = false
-            "scaffold2" -> LiquidBounce.moduleManager[Scaffold2::class.java]!!.state = false
+            "scaffold" -> LiquidBounce.moduleManager[Scaffold::class.java].state = false
+            "scaffold3" -> LiquidBounce.moduleManager[Scaffold3::class.java].state = false
+            "scaffold2" -> LiquidBounce.moduleManager[Scaffold2::class.java].state = false
         }
         LiquidBounce.moduleManager[Parkour::class.java].state = false
         LiquidBounce.moduleManager[Timer::class.java].state = false
@@ -62,34 +68,55 @@ class ScaffoldHelper : Module() {
         mc.gameSettings.keyBindJump.pressed = false
         super.onDisable()
     }
+
     @EventTarget
-    fun onUpdate(event: UpdateEvent){
-        if(jumpModeValue.get() == "Parkour") {
-            LiquidBounce.moduleManager[Parkour::class.java]!!.state = true
-        }else{
-            LiquidBounce.moduleManager[Parkour::class.java]!!.state = false
+    fun onUpdate(event: UpdateEvent) {
+        if (jumpModeValue.get() == "Parkour") {
+            LiquidBounce.moduleManager[Parkour::class.java].state = true
+        } else {
+            LiquidBounce.moduleManager[Parkour::class.java].state = false
             jump()
         }
 
-        if (mc.thePlayer!!.onGround){
-            if(timerValue.get())
-                LiquidBounce.moduleManager[Timer::class.java]!!.state = true
-
-            if (modeValue.get().toLowerCase() == "state") {
-                when (scaffoldModeValue.get().toLowerCase()) {
-                    "scaffold" -> LiquidBounce.moduleManager[Scaffold::class.java]!!.state = false
-                    "scaffold3" -> LiquidBounce.moduleManager[Scaffold3::class.java]!!.state = false
-                    "scaffold2" -> LiquidBounce.moduleManager[Scaffold2::class.java]!!.state = false
+        if (autoYawValue.get().equals("onUpdate")) {
+            //open it and you can better bypass grimac by guamian
+            val mc = MinecraftInstance.mc
+            val IEntityPlayerSP =
+                mc.thePlayer ?: throw TypeCastException("null cannot be cast to non-null type IEntityPlayerSP")
+            val string =
+                autoYawValue.get()
+            if (string.toLowerCase() == "none") {
+                return
+            }
+            val d = IEntityPlayerSP.motionX
+            val d2 = IEntityPlayerSP.motionZ
+            if (mc.gameSettings.keyBindForward.isKeyDown) {
+                when {
+                    d2 > 0.1 -> IEntityPlayerSP.rotationYaw = 0.0f
+                    d2 < -0.1 -> IEntityPlayerSP.rotationYaw = 180.0f
+                    d > 0.1 -> IEntityPlayerSP.rotationYaw = -90.0f
+                    d < -0.1 -> IEntityPlayerSP.rotationYaw = 90.0f
                 }
             }
-        }else {
+        }
+        if (mc.thePlayer!!.onGround) {
+            if (timerValue.get())
+                LiquidBounce.moduleManager[Timer::class.java].state = true
+            if (modeValue.get().toLowerCase() == "state") {
+                when (scaffoldModeValue.get().toLowerCase()) {
+                    "scaffold" -> LiquidBounce.moduleManager[Scaffold::class.java].state = false
+                    "scaffold3" -> LiquidBounce.moduleManager[Scaffold3::class.java].state = false
+                    "scaffold2" -> LiquidBounce.moduleManager[Scaffold2::class.java].state = false
+                }
+            }
+        } else {
             if (timerValue.get())
                 LiquidBounce.moduleManager[Timer::class.java].state = false
             if (modeValue.get().toLowerCase() == "state") {
                 when (scaffoldModeValue.get().toLowerCase()) {
-                    "scaffold" -> LiquidBounce.moduleManager[Scaffold::class.java]!!.state = true
-                    "scaffold3" -> LiquidBounce.moduleManager[Scaffold3::class.java]!!.state = true
-                    "scaffold2" -> LiquidBounce.moduleManager[Scaffold2::class.java]!!.state = true
+                    "scaffold" -> LiquidBounce.moduleManager[Scaffold::class.java].state = true
+                    "scaffold3" -> LiquidBounce.moduleManager[Scaffold3::class.java].state = true
+                    "scaffold2" -> LiquidBounce.moduleManager[Scaffold2::class.java].state = true
                 }
             }
         }
